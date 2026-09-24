@@ -349,11 +349,7 @@ impl ParsedQuint {
                             violation: false,
                             seed,
                         },
-                        error: QuintError {
-                            code: "QNT500".to_string(),
-                            message: msg.to_string(),
-                            trace: Vec::new(),
-                        },
+                        error: QuintError::new("QNT500", msg),
                         pending_diagnostics,
                     });
                 }
