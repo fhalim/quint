@@ -278,8 +278,13 @@ const otherOperators = [
     effect: parseAndQuantify('(Pure, Pure, Update[u1], Read[r2] & Update[u2], Read[r3]) => Read[r2, r3] & Update[u2]'),
   },
   {
+    // Both branches must update the same variables, so that `if` can be used in actions. Branches and the
+    // condition may be temporal, and as in `standardPropagation`, the condition may be an action, which then
+    // becomes temporal.
     name: 'ite',
-    effect: parseAndQuantify('(Read[r1], Read[r2] & Update[u], Read[r3] & Update[u]) => Read[r1, r2, r3] & Update[u]'),
+    effect: parseAndQuantify(
+      '(Read[r1] & Temporal[t1] & Update[u1], Read[r2] & Temporal[t2] & Update[u], Read[r3] & Temporal[t3] & Update[u]) => Read[r1, r2, r3] & Temporal[t1, t2, t3, u1] & Update[u]'
+    ),
   },
   {
     name: 'variant',

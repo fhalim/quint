@@ -1814,7 +1814,7 @@ is like `[][x' > x]_x` of TLA+.
 
 Inside a temporal definition, actions may also be used as arguments of the
 operators that are not specific to actions, such as `not`, `==`, `exists`,
-`forall` or set operators. The result is temporal: the updates of the action are
+`forall`, `if`-`else` or set operators. The result is temporal: the updates of the action are
 treated as references to the next state. For example:
 
 ```scala
@@ -1825,6 +1825,9 @@ temporal validChange = always(Credits.forall(c =>
 
 // "eventually, no node ever sends a message"
 temporal noMoreMessages = eventually(always(Nodes.forall(i => not(SendMsg(i))).orKeep(vars)))
+
+// the transition depends on the current state
+temporal byCase = always((if (x < 3) next(x) == x + 1 else next(x) == 0).orKeep(x))
 ```
 
 This is not allowed in actions, where the action operators should be used

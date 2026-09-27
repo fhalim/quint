@@ -178,7 +178,7 @@ describe('inferEffects', () => {
     const [errors, effects] = inferEffectsForDefs(defs)
 
     const expectedEffect =
-      '∀ v0, v1, v2, v3 . (Read[v0] & Update[v1], (Read[v0]) => Read[v2], Read[v0] & Update[v3]) => Read[v0, v2] & Temporal[v1, v3]'
+      '∀ v0, v1, v2, v3, v4, v5, v6 . (Read[v0] & Temporal[v1] & Update[v2], (Read[v0] & Temporal[v1]) => Read[v3] & Temporal[v4] & Update[v5], Read[v0] & Temporal[v1] & Update[v6]) => Read[v0, v3] & Temporal[v1, v4, v5, v2, v6]'
 
     assert.isEmpty(errors, `Should find no errors, found: ${[...errors.values()].map(errorTreeToString)}`)
     assert.deepEqual(effectForDef(defs, effects, 'MinBy'), expectedEffect)
@@ -348,6 +348,33 @@ describe('inferEffects', () => {
     assert.isEmpty(errors, `Should find no errors, found: ${[...errors.values()].map(errorTreeToString)}`)
     assert.deepEqual(effectForDef(defs, effects, 'a'), "Read['x'] & Temporal['x']")
     assert.deepEqual(effectForDef(defs, effects, 'b'), "Read['x']")
+  })
+
+  it('infers effects for if-then-else with temporal formulas and actions', () => {
+    const defs = [
+      "action A = x' = x + 1",
+      "action B = x' = x - 1",
+      'temporal a = if (x > 0) always(x > 0) else eventually(x > 0)',
+      'temporal b = if (next(x) > x) always(x > 0) else x > 0',
+      'temporal c = if (A) always(x > 0) else x > 0',
+      'action d = if (x > 0) A else B',
+    ]
+
+    const [errors, effects] = inferEffectsForDefs(defs)
+
+    assert.isEmpty(errors, `Should find no errors, found: ${[...errors.values()].map(errorTreeToString)}`)
+    assert.deepEqual(effectForDef(defs, effects, 'a'), "Read['x'] & Temporal['x']")
+    assert.deepEqual(effectForDef(defs, effects, 'b'), "Read['x'] & Temporal['x']")
+    assert.deepEqual(effectForDef(defs, effects, 'c'), "Read['x'] & Temporal['x']")
+    assert.deepEqual(effectForDef(defs, effects, 'd'), "Read['x'] & Update['x']")
+  })
+
+  it('finds errors for if-then-else with branches updating different variables', () => {
+    const defs = ["action A = x' = x + 1", 'action a = if (x > 0) A else true']
+
+    const [errors] = inferEffectsForDefs(defs)
+
+    assert.isNotEmpty(errors)
   })
 
   it('infers temporal effect for leadsTo', () => {
