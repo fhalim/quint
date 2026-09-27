@@ -1,4 +1,3 @@
-// -*- mode: Bluespec; -*-
 /**
  * The examples of action properties from Hillel Wayne's "Action Properties"
  * (https://www.hillelwayne.com/post/action-properties/), in Quint.
