@@ -1815,13 +1815,17 @@ is like `[][x' > x]_x` of TLA+.
 Inside a temporal definition, actions may also be used as arguments of the
 operators that are not specific to actions, such as `not`, `==`, `exists`,
 `forall`, `if`-`else` or set operators. The result is temporal: the updates of the action are
-treated as references to the next state. For example:
+treated as references to the next state. Actions may also take arguments that
+refer to the next state, like `nextCo` below. For example:
 
 ```quint
-temporal validChange = always(Credits.forall(c =>
-  (owner.get(c) != next(owner).get(c)) implies
-    Users.exists(u => next(owner).get(c) == u and Accept(owner.get(c), u, c))
-).orKeep(owner))
+// if the owner of a credit changes, it's because the new owner accepted an offer
+temporal ValidChange(c) = {
+  val co = owner.get(c)
+  temporal nextCo = next(owner).get(c)
+  co != nextCo implies Accept(co, nextCo, c)
+}
+temporal validChange = always(Credits.forall(c => ValidChange(c)).orKeep(owner))
 
 // "eventually, no node ever sends a message"
 temporal noMoreMessages = eventually(always(Nodes.forall(i => not(SendMsg(i))).orKeep(vars)))
