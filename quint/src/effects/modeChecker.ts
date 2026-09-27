@@ -60,7 +60,7 @@ export class ModeChecker implements IRVisitor {
   private effects: Map<bigint, EffectScheme> = new Map<bigint, EffectScheme>()
 
   // For each operator definition being visited (innermost last), the first application in it that turns
-  // an action into a temporal expression: `exists`/`forall` whose body is an action, or `not` of an action.
+  // an action into a temporal expression, e.g. `not(A)` or `S.exists(i => A(i))` for an action `A`.
   private actionsAsTemporal: (QuintApp | undefined)[] = []
 
   enterOpDef(_def: QuintOpDef) {
@@ -69,23 +69,18 @@ export class ModeChecker implements IRVisitor {
 
   enterApp(app: QuintApp) {
     const current = this.actionsAsTemporal.length - 1
-    if (current < 0 || this.actionsAsTemporal[current] !== undefined) {
+    if (current < 0 || this.actionsAsTemporal[current] !== undefined || temporalOperators.has(app.opcode)) {
       return
     }
 
-    const lambda = app.args[1]
-    const actionArg =
-      app.opcode === 'not'
-        ? app.args[0]
-        : (app.opcode === 'exists' || app.opcode === 'forall') && lambda?.kind === 'lambda'
-        ? lambda.expr
-        : undefined
-    if (actionArg === undefined) {
-      return
+    // An argument (or the body of a lambda argument) is an action, but the application doesn't update
+    // anything: the updates became temporal.
+    const hasUpdates = (id: bigint) => {
+      const effect = this.effects.get(id)?.effect
+      return effect?.kind === 'concrete' && effect.components.some(c => c.kind === 'update' && hasEntities(c.entity))
     }
-
-    const effect = this.effects.get(actionArg.id)?.effect
-    if (effect?.kind === 'concrete' && effect.components.some(c => c.kind === 'update' && hasEntities(c.entity))) {
+    const actionArg = app.args.some(arg => hasUpdates(arg.kind === 'lambda' ? arg.expr.id : arg.id))
+    if (actionArg && !hasUpdates(app.id)) {
       this.actionsAsTemporal[current] = app
     }
   }
@@ -114,7 +109,9 @@ export class ModeChecker implements IRVisitor {
               '`exists` over an action',
               ' To pick a value non-deterministically in an action, use `nondet x = S.oneOf()` instead.',
             ]
-          : ['`forall` over an action', '']
+          : actionAsTemporal.opcode === 'forall'
+          ? ['`forall` over an action', '']
+          : [`Using an action as an argument of \`${actionAsTemporal.opcode}\``, '']
       this.errors.set(actionAsTemporal.id, {
         code: 'QNT200',
         message: `${what} is only allowed in temporal definitions, but it is used in ${qualifierToString(
@@ -194,6 +191,19 @@ function modeConstraint(mode: OpQualifier, expectedMode: OpQualifier): string {
       return '[not supported by the mode checker]'
   }
 }
+
+// Operators that are meant to turn actions into temporal formulas
+const temporalOperators = new Set([
+  'always',
+  'eventually',
+  'next',
+  'orKeep',
+  'mustChange',
+  'enabled',
+  'weakFair',
+  'strongFair',
+  'leadsTo',
+])
 
 function hasEntities(entity: Entity): boolean {
   return entityNames(entity).length > 0 || stateVariables(entity).length > 0

@@ -1812,25 +1812,23 @@ Together with `always`, this operator lets us write action properties, that is,
 properties of every transition. For example, `always((next(x) > x).orKeep(x))`
 is like `[][x' > x]_x` of TLA+.
 
-Inside a temporal definition, actions may also be used in the body of `exists`
-and `forall`. The result is temporal: the updates of the action are treated as
-references to the next state. For example:
+Inside a temporal definition, actions may also be used as arguments of the
+operators that are not specific to actions, such as `not`, `==`, `exists`,
+`forall` or set operators. The result is temporal: the updates of the action are
+treated as references to the next state. For example:
 
 ```scala
 temporal validChange = always(Credits.forall(c =>
   (owner.get(c) != next(owner).get(c)) implies
     Users.exists(u => next(owner).get(c) == u and Accept(owner.get(c), u, c))
 ).orKeep(owner))
-```
 
-In actions, use `nondet` instead of `exists` to pick a value.
-
-Similarly, an action may be negated with `not` inside a temporal definition.
-For example, "eventually, no node ever sends a message" is written as:
-
-```scala
+// "eventually, no node ever sends a message"
 temporal noMoreMessages = eventually(always(Nodes.forall(i => not(SendMsg(i))).orKeep(vars)))
 ```
+
+This is not allowed in actions, where the action operators should be used
+instead, e.g., `nondet` instead of `exists` to pick a value.
 
 #### MustChange
 

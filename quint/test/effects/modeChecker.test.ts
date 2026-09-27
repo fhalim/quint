@@ -79,6 +79,46 @@ describe('checkModes', () => {
     ])
   })
 
+  it('finds mode errors for actions as arguments of other operators in actions', () => {
+    const defs = [
+      `action A = x' = 1`,
+      `action a = Set(A).size() == 1`,
+      `pure def myNot(b) = not(b)`,
+      `action b = myNot(A)`,
+    ]
+
+    const [errors, _suggestions] = checkMockedDefs(defs)
+
+    const messages = [...errors.values()].map(e => e.message)
+    assert.sameMembers(messages, [
+      'Using an action as an argument of `Set` is only allowed in temporal definitions, but it is used in action `a`.',
+      'Using an action as an argument of `myNot` is only allowed in temporal definitions, but it is used in action `b`.',
+    ])
+  })
+
+  it('suggests temporal for temporal operators in actions', () => {
+    const defs = [`action A = x' = 1`, `action a = A.orKeep(x)`]
+
+    const [errors, _suggestions] = checkMockedDefs(defs)
+
+    assert.deepEqual(
+      [...errors.values()].map(e => e.data),
+      [{ fix: { kind: 'replace', original: 'action', replacement: 'temporal' } }]
+    )
+  })
+
+  it('finds no errors for actions as arguments of other operators in temporal definitions', () => {
+    const defs = [
+      `action A = x' = 1`,
+      `pure def myNot(b) = not(b)`,
+      `temporal t = always((((next(x) == 1) == A) and Set(A).size() == 1 and myNot(A)).orKeep(x))`,
+    ]
+
+    const [errors, _suggestions] = checkMockedDefs(defs)
+
+    assert.isEmpty(errors, `Should find no errors, found: ${[...errors.values()].map(quintErrorToString)}`)
+  })
+
   it('finds no errors for negating an action in a temporal definition', () => {
     const defs = [`action A(i) = x' = i`, `temporal t = always(Set(1, 2).forall(i => not(A(i))).orKeep(x))`]
 
