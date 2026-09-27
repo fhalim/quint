@@ -256,7 +256,10 @@ const temporalOperators = [
 ]
 
 const otherOperators = [
-  { name: 'assign', effect: parseAndQuantify('(Read[r1], Read[r2]) => Read[r2] & Update[r1]') },
+  {
+    name: 'assign',
+    effect: parseAndQuantify('(Read[r1], Read[r2] & Temporal[t]) => Read[r2] & Update[r1] & Temporal[t]'),
+  },
   { name: 'then', effect: parseAndQuantify('(Read[r1] & Update[u], Read[r2] & Update[u]) => Read[r] & Update[u]') },
   { name: 'expect', effect: parseAndQuantify('(Read[r1] & Update[u], Read[r2]) => Read[r1] & Update[u]') },
   { name: 'reps', effect: parseAndQuantify('(Pure, (Read[r1]) => Read[r2] & Update[u]) => Read[r1, r2] & Update[u]') },
@@ -344,15 +347,16 @@ const multipleAritySignatures: [QuintBuiltinOpcode, Signature][] = [
       return parseAndQuantify(`(${args.join(', ')}) => Read[${readVars}] & Update[${updateVars}]`)
     },
   ],
-  ['actionAll', propagateComponents(['read', 'update'])],
+  ['actionAll', propagateComponents(['read', 'temporal', 'update'])],
   [
     'actionAny',
     (arity: number) => {
       const indexes = range(arity)
 
-      const args = indexes.map(i => `Read[r${i}] & Update[u]`)
+      const args = indexes.map(i => `Read[r${i}] & Temporal[t${i}] & Update[u]`)
       const readVars = indexes.map(i => `r${i}`).join(', ')
-      return parseAndQuantify(`(${args.join(', ')}) => Read[${readVars}] & Update[u]`)
+      const temporalVars = indexes.map(i => `t${i}`).join(', ')
+      return parseAndQuantify(`(${args.join(', ')}) => Read[${readVars}] & Temporal[${temporalVars}] & Update[u]`)
     },
   ],
 ]
