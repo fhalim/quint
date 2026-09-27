@@ -63,7 +63,7 @@ describe('checkModes', () => {
 
     const messages = [...errors.values()].map(e => e.message)
     assert.deepEqual(messages, [
-      '`exists` over an action is only allowed in temporal definitions, but it is used in action `a`. ' +
+      'Using an action as an argument of `exists` is only allowed in temporal definitions, but it is used in action `a`. ' +
         'To pick a value non-deterministically in an action, use `nondet x = S.oneOf()` instead.',
     ])
   })
@@ -75,7 +75,7 @@ describe('checkModes', () => {
 
     const messages = [...errors.values()].map(e => e.message)
     assert.deepEqual(messages, [
-      'Negating an action is only allowed in temporal definitions, but it is used in action `a`.',
+      'Using an action as an argument of `not` is only allowed in temporal definitions, but it is used in action `a`.',
     ])
   })
 
