@@ -1817,7 +1817,7 @@ operators that are not specific to actions, such as `not`, `==`, `exists`,
 `forall`, `if`-`else` or set operators. The result is temporal: the updates of the action are
 treated as references to the next state. For example:
 
-```scala
+```quint
 temporal validChange = always(Credits.forall(c =>
   (owner.get(c) != next(owner).get(c)) implies
     Users.exists(u => next(owner).get(c) == u and Accept(owner.get(c), u, c))
