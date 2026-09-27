@@ -100,7 +100,7 @@ describe('checkModes', () => {
     const defs = [
       `action a = x > 0 and x' = 1`,
       `action b = x' = 1 or x' = 2`,
-      // #1091, with `and` instead of `all`
+      // combining actions with `and` instead of `all`
       `action c(boolean: bool): bool = any { boolean and x' = x, not(boolean) and x' = x }`,
     ]
 
