@@ -49,11 +49,11 @@ describe('inferEffects', () => {
     assert.isEmpty(errors, `Should find no errors, found: ${[...errors.values()].map(errorTreeToString)}`)
     assert.deepEqual(
       effectForDef(defs, effects, 'a'),
-      "∀ v0, v1, v2 . (Read[v0] & Temporal[v1] & Update[v2]) => Read[v0, 'x'] & Temporal[v1] & Update[v2]"
+      "∀ v0, v1, v2 . (Read[v0] & Temporal[v1] & Update[v2]) => Read[v0, 'x'] & Temporal[v1, v2]"
     )
     assert.deepEqual(
       effectForDef(defs, effects, 'b'),
-      '∀ v0, v1, v2 . (Read[v0] & Temporal[v1] & Update[v2]) => Read[v0] & Temporal[v1] & Update[v2]'
+      '∀ v0, v1, v2 . (Read[v0] & Temporal[v1] & Update[v2]) => Read[v0] & Temporal[v1, v2]'
     )
   })
 
@@ -197,25 +197,6 @@ describe('inferEffects', () => {
              not(boolean),
              channel' = channel
            }
-        }`,
-    ]
-
-    const [errors, effects] = inferEffectsForDefs(defs)
-
-    const expectedEffect =
-      "∀ v0, v1 . (Read[v0] & Temporal[v1]) => Read[v0, 'channel'] & Temporal[v1] & Update['channel']"
-
-    assert.isEmpty(errors, `Should find no errors, found: ${[...errors.values()].map(errorTreeToString)}`)
-    assert.deepEqual(effectForDef(defs, effects, 'CoolAction'), expectedEffect)
-  })
-
-  it('regression on #1091 with `and`, where the parameter is also negated', () => {
-    const defs = [
-      'var channel: int',
-      `action CoolAction(boolean: bool): bool =
-         any {
-           boolean and channel' = channel,
-           not(boolean) and channel' = channel,
         }`,
     ]
 

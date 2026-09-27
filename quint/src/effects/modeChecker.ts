@@ -101,10 +101,7 @@ export class ModeChecker implements IRVisitor {
     if (mode === 'temporal' && actionAsTemporal !== undefined && def.qualifier !== 'run') {
       // The temporal effect comes from using an action as a temporal expression, which is only allowed in
       // temporal definitions. Suggesting `temporal` would be misleading for actions, so we explain instead.
-      const hint =
-        actionAsTemporal.opcode === 'exists'
-          ? ' To pick a value non-deterministically in an action, use `nondet x = S.oneOf()` instead.'
-          : ''
+      const hint = actionOperatorHints.get(actionAsTemporal.opcode) ?? ''
       this.errors.set(actionAsTemporal.id, {
         code: 'QNT200',
         message: `Using an action as an argument of \`${
@@ -186,6 +183,13 @@ function modeConstraint(mode: OpQualifier, expectedMode: OpQualifier): string {
       return '[not supported by the mode checker]'
   }
 }
+
+// Hints for operators whose counterparts should be used in actions
+const actionOperatorHints = new Map([
+  ['and', ' To combine actions, use `all { ... }` instead.'],
+  ['or', ' For alternative actions, use `any { ... }` instead.'],
+  ['exists', ' To pick a value non-deterministically in an action, use `nondet x = S.oneOf()` instead.'],
+])
 
 // Operators that are meant to turn actions into temporal formulas
 const temporalOperators = new Set([

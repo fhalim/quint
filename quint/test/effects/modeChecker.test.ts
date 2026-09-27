@@ -96,6 +96,35 @@ describe('checkModes', () => {
     ])
   })
 
+  it('finds mode errors for combining actions with `and` and `or` in actions', () => {
+    const defs = [
+      `action a = x > 0 and x' = 1`,
+      `action b = x' = 1 or x' = 2`,
+      // #1091, with `and` instead of `all`
+      `action c(boolean: bool): bool = any { boolean and x' = x, not(boolean) and x' = x }`,
+    ]
+
+    const [errors, _suggestions] = checkMockedDefs(defs)
+
+    const messages = [...errors.values()].map(e => e.message)
+    assert.sameMembers(messages, [
+      'Using an action as an argument of `and` is only allowed in temporal definitions, but it is used in action `a`. ' +
+        'To combine actions, use `all { ... }` instead.',
+      'Using an action as an argument of `or` is only allowed in temporal definitions, but it is used in action `b`. ' +
+        'For alternative actions, use `any { ... }` instead.',
+      'Using an action as an argument of `and` is only allowed in temporal definitions, but it is used in action `c`. ' +
+        'To combine actions, use `all { ... }` instead.',
+    ])
+  })
+
+  it('finds no errors for spec formulas combining actions with `and`', () => {
+    const defs = [`action init = x' = 0`, `action step = x' = x + 1`, `temporal spec = init and always(step.orKeep(x))`]
+
+    const [errors, _suggestions] = checkMockedDefs(defs)
+
+    assert.isEmpty(errors, `Should find no errors, found: ${[...errors.values()].map(quintErrorToString)}`)
+  })
+
   it('suggests temporal for temporal operators in actions', () => {
     const defs = [`action A = x' = 1`, `action a = A.orKeep(x)`]
 

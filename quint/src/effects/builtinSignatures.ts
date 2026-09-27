@@ -126,21 +126,19 @@ function resultEffect(kinds: ComponentKind[], arity: number, updatesAsTemporal: 
 // Standard propagation for operators that are not specific to actions or temporal formulas. Actions may be
 // given as arguments, which makes the result temporal: the updates are treated as references to the next state
 // (like `next(x)`). This allows writing action properties such as `always(not(A).orKeep(vars))` or
-// `always(S.exists(i => A(i)).orKeep(vars))`, while actions have to use the action operators (e.g. `nondet`
-// instead of `exists`), as ensured by the mode checker.
+// `always(S.exists(i => A(i)).orKeep(vars))`, and spec formulas such as `init and always(step.orKeep(vars))`,
+// while actions have to use the action operators (e.g. `all`/`any` instead of `and`/`or`, `nondet` instead of
+// `exists`), as ensured by the mode checker.
 export const standardPropagation = propagateComponents(['read', 'temporal'], true)
 const standardPropagationWithLambda = propagationWithLambda(['read', 'temporal'], true)
-// Propagation for boolean connectives that may combine actions with temporal formulas,
-// e.g., `init and always(...)` in a spec formula.
-const actionTemporalPropagation = propagateComponents(['read', 'temporal', 'update'])
 
 const literals = ['Nat', 'Int', 'Bool'].map(name => ({ name, effect: toScheme({ kind: 'concrete', components: [] }) }))
 export const booleanOperators = [
   { name: 'eq', effect: standardPropagation(2) },
   { name: 'neq', effect: standardPropagation(2) },
   { name: 'not', effect: standardPropagation(1) },
-  { name: 'iff', effect: actionTemporalPropagation(2) },
-  { name: 'implies', effect: actionTemporalPropagation(2) },
+  { name: 'iff', effect: standardPropagation(2) },
+  { name: 'implies', effect: standardPropagation(2) },
 ]
 
 export const setOperators = [
@@ -302,8 +300,8 @@ const multipleAritySignatures: [QuintBuiltinOpcode, Signature][] = [
   ['Rec', standardPropagation],
   ['Tup', standardPropagation],
   ['tuples', standardPropagation],
-  ['and', actionTemporalPropagation],
-  ['or', actionTemporalPropagation],
+  ['and', standardPropagation],
+  ['or', standardPropagation],
   [
     // A match operator that looks like
     //
