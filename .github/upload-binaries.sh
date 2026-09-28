@@ -65,10 +65,12 @@ for target_config in "${TARGETS[@]}"; do
   IFS=":" read -r TARGET SUFFIX <<< "$target_config"
 
   echo "Compiling for target: $TARGET"
+  # --min-dep-age=0: Deno refuses npm versions younger than 24h by default,
+  # and we compile the version that was just published.
   deno compile \
+    --min-dep-age=0 \
     --allow-all \
     --node-modules-dir=auto \
-    --allow-scripts \
     --target "$TARGET" \
     --output "quint-$SUFFIX" \
     "npm:@informalsystems/quint@$VERSION"
