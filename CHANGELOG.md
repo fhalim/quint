@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 ### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+## v0.33.0 -- 2026-09-28
+
+### Added
+### Changed
 
 - `orKeep` and `mustChange` now accept expressions using `next`, so action properties like `always((next(x) > x).orKeep(x))` can be written and checked with `--backend tlc`
 - Actions can be used as arguments of operators that are not specific to actions (e.g. `not`, `==`, `exists`, `forall`) in temporal definitions, making the result temporal, e.g. `always(not(A).orKeep(vars))`. Doing this in actions reports an error explaining it (and suggesting `nondet` instead of `exists`)
