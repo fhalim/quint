@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `if`-`else` can be used with temporal formulas, e.g. `always((if (x < 3) next(x) == x + 1 else next(x) == 0).orKeep(x))`. As before, both branches of an `if` in an action must update the same variables
 - Actions can take temporal arguments in temporal definitions, e.g. `Accept(owner.get(c), next(owner).get(c), c)`, so actions can be used as relations between the current and next state
 - Upgraded the default Apalache version to 0.62.1, which requires Java 21 or newer.
+- Shrink Rust evaluator's `Value` and `EvalResult` to cut allocations on the hot path.
+
 
 ### Deprecated
 ### Removed
