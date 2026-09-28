@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ### Fixed
 
+- Fixed `QNT502` ("Variable ... not set") when the right-hand side of an assignment to an instance variable reads a variable of the enclosing module. The right-hand side is now evaluated in the caller's context, in both the TypeScript and Rust evaluators (#2027)
 - Fixed concurrent `quint verify` runs failing with "Could not find or load main class tlc2.TLC" while another run was still downloading the Apalache distribution. The distribution is now unpacked in a temporary directory and moved into place once complete
 - Fixed `and`, `or`, `implies` and `iff` being accepted to combine assignments in actions (e.g. `x > 0 and x' = 1`), a regression in v0.32.0. Use `all { ... }` and `any { ... }` in actions, as documented. In temporal definitions, they can combine actions and temporal formulas, e.g. `init and always(step.orKeep(vars))`
 - Fixed flattening of qualified imports (`import A as C`) when an imported name starts with the qualifier, e.g. `Credits` with `C`, which failed with "Name 'C::Credits' not found"
