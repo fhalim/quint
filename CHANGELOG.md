@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `--step`/`--init` resolving to a state variable instead of an action when the variable is named `step` or `init` (#1969)
 - `quint compile --target=json` no longer requires `init` and `step` to exist in the module (#1971)
 - Prevent stack overflow in `getTraceStatistics` (#1992)
+- Fixed `QNT502` ("Variable ... not set") when the right-hand side of an assignment to an instance variable reads a variable of the enclosing module. The right-hand side is now evaluated in the caller's context, in both the TypeScript and Rust evaluators (#2027)
+
 
 ### Security
 
