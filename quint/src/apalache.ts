@@ -389,18 +389,39 @@ async function tryConnect(serverEndpoint: ServerEndpoint, retry: boolean = false
     .map(apalache)
 }
 
-function downloadAndUnpackApalache(apalacheVersion: string): Promise<ApalacheResult<null>> {
+async function downloadAndUnpackApalache(apalacheVersion: string): Promise<ApalacheResult<null>> {
   const url = `https://github.com/apalache-mc/apalache/releases/download/v${apalacheVersion}/apalache.tgz`
-  return fetch(url)
-    .then(
-      // unpack response body
-      res => pipeline(res.body!, tar.extract({ cwd: apalacheDistDir(apalacheVersion), strict: true })),
-      error => err(`Error fetching ${url}: ${error}`)
-    )
-    .then(
-      _ => right(null),
-      error => err(`Error unpacking .tgz: ${error}`)
-    )
+  const distDir = apalacheDistDir(apalacheVersion)
+  // Unpack into a temporary directory and then move it into place, so that other quint processes (e.g., running
+  // in parallel) never see a partially unpacked distribution, which would make them fail to load Apalache or TLC.
+  const tmpDir = fs.mkdtempSync(path.join(distDir, 'download-'))
+  try {
+    let res: Response
+    try {
+      res = await fetch(url)
+    } catch (error) {
+      return err(`Error fetching ${url}: ${error}`)
+    }
+
+    try {
+      await pipeline(res.body!, tar.extract({ cwd: tmpDir, strict: true }))
+    } catch (error) {
+      return err(`Error unpacking .tgz: ${error}`)
+    }
+
+    try {
+      fs.renameSync(path.join(tmpDir, 'apalache'), path.join(distDir, 'apalache'))
+    } catch (error) {
+      // Another process may have moved its complete distribution into place in the meantime, then we use that one
+      if (!fs.existsSync(path.join(distDir, 'apalache'))) {
+        return err(`Error installing the Apalache distribution in ${distDir}: ${error}`)
+      }
+    }
+
+    return right(null)
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  }
 }
 
 /**
