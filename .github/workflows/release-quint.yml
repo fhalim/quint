@@ -21,13 +21,16 @@ jobs:
         working-directory: ./quint
     permissions:
       contents: write
+      # Required for npm trusted publishing (OIDC) and provenance
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install node
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          # npm trusted publishing requires npm >= 11.5.1, shipped with node 24
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
       - name: Compile
         run: npm ci
@@ -40,7 +43,7 @@ jobs:
           sed -n "/## v$version/,/## v/p" ../CHANGELOG.md | head -n -1 > ${{ github.workspace }}/release-notes.txt
       - name: Release
         # See https://github.com/softprops/action-gh-release#-external-release-notes
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           body_path: ${{ github.workspace }}/release-notes.txt
           token: ${{ secrets.GITHUB_TOKEN }}
