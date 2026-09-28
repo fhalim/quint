@@ -6,12 +6,21 @@ on:
       - "v*.*.*"
 
 jobs:
+  # Reusable workflows can't be granted more permissions than their caller has,
+  # and the org default token has no `pull-requests` access, which the
+  # `changes` jobs in these workflows request.
   unit-tests:
     uses: ./.github/workflows/test-quint.yml
+    permissions:
+      contents: read
+      pull-requests: read
 
   integration-tests:
     uses: ./.github/workflows/integration-tests.yml
     secrets: inherit
+    permissions:
+      contents: read
+      pull-requests: read
 
   release:
     needs: [unit-tests, integration-tests]
