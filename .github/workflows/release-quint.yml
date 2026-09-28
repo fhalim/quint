@@ -107,8 +107,10 @@ jobs:
         env:
           QUINT_VERSION: ${{ needs.wait-for-npm.outputs.version }}
         # can't use bash shell tricks, as it's not available on windows
+        # --min-dep-age=0: Deno refuses npm versions younger than 24h by
+        # default, and we are checking the version that was just published.
         run: |
-          deno run --allow-all --node-modules-dir=auto --allow-scripts "npm:@informalsystems/quint@${{ env.QUINT_VERSION }}" --version
+          deno run --min-dep-age=0 --allow-all --node-modules-dir=auto --allow-scripts "npm:@informalsystems/quint@${{ env.QUINT_VERSION }}" --version
   upload-binaries:
     needs: check-on-arch
     runs-on: ubuntu-latest
