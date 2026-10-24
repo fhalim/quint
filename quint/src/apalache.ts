@@ -511,6 +511,32 @@ export function apalacheSpawnOptions(
 }
 
 /**
+ * Compute the command and arguments used to spawn the Apalache server process.
+ *
+ * On Windows, Apalache is spawned via a shell (see `apalacheSpawnOptions`), and
+ * Node joins the command and its arguments into a single command line without
+ * quoting them. The launcher lives under the user's home directory, which often
+ * contains spaces (e.g., `C:\Users\Jane Doe`), so we quote the executable
+ * ourselves and pass the whole command line as the command, with no separate
+ * arguments.
+ *
+ * @param platform the value of `process.platform`
+ * @param exe the path to the Apalache launcher
+ * @param port the port the Apalache server should listen on
+ */
+export function apalacheSpawnCommand(
+  platform: NodeJS.Platform,
+  exe: string,
+  port: number
+): { command: string; args: string[] } {
+  const args = ['server', `--port=${port}`]
+  if (platform === 'win32') {
+    return { command: [`"${exe}"`, ...args].join(' '), args: [] }
+  }
+  return { command: exe, args }
+}
+
+/**
  * Connect to an already running Apalache server, or – if unsuccessful – fetch
  * Apalache, spawn it, and connect to it.
  *
@@ -552,8 +578,8 @@ export async function connect(
               ? ['ignore', process.stdout, process.stderr]
               : ['ignore', 'ignore', 'ignore']
           const options = apalacheSpawnOptions(process.platform, stdio)
-          const args = ['server', `--port=${serverEndpoint.port}`]
-          const apalache = child_process.spawn(exe, args, options)
+          const { command, args } = apalacheSpawnCommand(process.platform, exe, serverEndpoint.port)
+          const apalache = child_process.spawn(command, args, options)
 
           // Exit handler that kills Apalache if Quint exists
           function exitHandler() {
