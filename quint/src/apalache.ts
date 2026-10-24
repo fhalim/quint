@@ -23,7 +23,7 @@ import fs from 'fs'
 // TODO: used by GitHub api approach: https://github.com/informalsystems/quint/issues/1124
 // import semver from 'semver'
 import { pipeline } from 'stream/promises'
-import child_process, { StdioOptions } from 'child_process'
+import child_process, { ChildProcess, StdioOptions } from 'child_process'
 import * as tar from 'tar'
 import * as grpc from '@grpc/grpc-js'
 import * as proto from '@grpc/proto-loader'
@@ -537,6 +537,56 @@ export function apalacheSpawnCommand(
 }
 
 /**
+ * Installs the process handlers that kill the Apalache server `apalache` when
+ * Quint exits or is signalled.
+ *
+ * SIGTERM and SIGHUP end Quint after the kill, since a listener replaces their
+ * default disposition. SIGINT does not: other SIGINT listeners decide.
+ *
+ * @param apalache the spawned Apalache server process
+ * @param shell whether `apalache` was spawned via a shell (see `apalacheSpawnOptions`)
+ * @param verbosityLevel the verbosity level for debug logging
+ */
+function stopWithQuint(apalache: ChildProcess, shell: boolean, verbosityLevel: number): void {
+  function exitHandler() {
+    debugLog(verbosityLevel, 'Shutting down Apalache server')
+    // Remove 'exit' listeners on Apalache, to avoid exiting in that handler with a different code
+    apalache.removeAllListeners('exit')
+    if (shell && apalache.pid) {
+      // On Windows, we spawned Apalache via a shell (cmd.exe) to launch the
+      // .bat launcher, so apalache.pid is the shell's pid, not the underlying
+      // Java process. Killing just the shell would orphan Apalache, so we
+      // kill the whole process tree instead.
+      try {
+        child_process.execSync(`taskkill /pid ${apalache.pid} /T /F`)
+      } catch (e) {
+        debugLog(verbosityLevel, `Could not kill Apalache server, exiting: ${e}`)
+      }
+    } else {
+      // Try to kill Apalache
+      let killed = apalache.kill('SIGTERM')
+      if (!killed) {
+        debugLog(verbosityLevel, `Could not kill Apalache server, exiting`)
+      }
+    }
+  }
+
+  process.on('exit', exitHandler)
+  process.on('SIGINT', exitHandler)
+  process.on('SIGUSR1', exitHandler)
+  process.on('SIGUSR2', exitHandler)
+  process.on('uncaughtException', exitHandler)
+  process.on('SIGTERM', () => {
+    exitHandler()
+    process.exit(143)
+  })
+  process.on('SIGHUP', () => {
+    exitHandler()
+    process.exit(129)
+  })
+}
+
+/**
  * Connect to an already running Apalache server, or – if unsuccessful – fetch
  * Apalache, spawn it, and connect to it.
  *
@@ -581,40 +631,11 @@ export async function connect(
           const { command, args } = apalacheSpawnCommand(process.platform, exe, serverEndpoint.port)
           const apalache = child_process.spawn(command, args, options)
 
-          // Exit handler that kills Apalache if Quint exists
-          function exitHandler() {
-            debugLog(verbosityLevel, 'Shutting down Apalache server')
-            // Remove 'exit' listeners on Apalache, to avoid exiting in that handler with a different code
-            apalache.removeAllListeners('exit')
-            if (options.shell && apalache.pid) {
-              // On Windows, we spawned Apalache via a shell (cmd.exe) to launch the
-              // .bat launcher, so apalache.pid is the shell's pid, not the underlying
-              // Java process. Killing just the shell would orphan Apalache, so we
-              // kill the whole process tree instead.
-              try {
-                child_process.execSync(`taskkill /pid ${apalache.pid} /T /F`)
-              } catch (e) {
-                debugLog(verbosityLevel, `Could not kill Apalache server, exiting: ${e}`)
-              }
-            } else {
-              // Try to kill Apalache
-              let killed = apalache.kill('SIGTERM')
-              if (!killed) {
-                debugLog(verbosityLevel, `Could not kill Apalache server, exiting`)
-              }
-            }
-          }
-
           if (apalache.pid) {
             // Apalache launched successfully
             debugLog(verbosityLevel, `Started Apalache server on pid=${apalache.pid}`)
 
-            // Install exit handler that kills Apalache if Quint exists
-            process.on('exit', exitHandler.bind(null))
-            process.on('SIGINT', exitHandler.bind(null))
-            process.on('SIGUSR1', exitHandler.bind(null))
-            process.on('SIGUSR2', exitHandler.bind(null))
-            process.on('uncaughtException', exitHandler.bind(null))
+            stopWithQuint(apalache, options.shell, verbosityLevel)
 
             // Exit Quint if Apalache exits unexpectedly
             apalache.on('exit', code => {

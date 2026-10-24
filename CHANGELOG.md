@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `quint run` recording a run twice when `step` cannot be extended. Such runs were written twice with `--n-traces` and `--out-itf`, the shortest traces were dropped when `--n-traces` equals `--max-samples`, and the trace length statistics counted them twice
 - Fixed the Rust evaluator counting runs that cannot be extended or that violate an invariant twice in the trace length statistics
 - Fixed launching the Apalache server on Windows when the Quint home directory (by default, the user's home directory) contains spaces
+- Quint now stops the Apalache server it started when it receives SIGTERM or SIGHUP. Before, the server kept running and held its port
 
 ### Security
 
