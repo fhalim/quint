@@ -202,6 +202,11 @@ impl ParsedQuint {
             trace_witnessed.fill(false);
             let mut remaining = compiled_witnesses.len();
 
+            // Clear storage so that metadata left by a previous sample's
+            // failed step attempt is not recorded into this sample's initial
+            // state.
+            env.var_storage.borrow_mut().clear_metadata();
+
             // Wrap execute calls to catch panics and print seed
             let result = catch_unwind(AssertUnwindSafe(|| -> Result<bool, QuintError> {
                 if !init.execute(env)?.as_bool() {
@@ -235,7 +240,6 @@ impl ParsedQuint {
                     }
 
                     if !invariant.execute(env)?.as_bool() {
-                        trace_lengths.push(env.trace.len());
                         return Ok(false);
                     }
 
@@ -244,9 +248,8 @@ impl ParsedQuint {
                         // Since we are doing random simulation, it is very likely
                         // that we have not generated good values for extending
                         // the run. Hence, do not report an error here, but simply
-                        // drop the run. Otherwise, we would have a lot of false
+                        // end the run. Otherwise, we would have a lot of false
                         // positives, which look like deadlocks but they are not.
-                        trace_lengths.push(env.trace.len());
                         return Ok(true);
                     }
                 }
@@ -344,11 +347,7 @@ impl ParsedQuint {
                             violation: false,
                             seed,
                         },
-                        error: QuintError {
-                            code: "QNT500".to_string(),
-                            message: msg.to_string(),
-                            trace: Vec::new(),
-                        },
+                        error: QuintError::new("QNT500", msg),
                         pending_diagnostics,
                     });
                 }

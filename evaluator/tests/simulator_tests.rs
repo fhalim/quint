@@ -185,6 +185,59 @@ fn tictactoe_n_traces_1_fast_return() {
 }
 
 #[test]
+/// The initial state of every trace should be annotated with `init` and no
+/// nondet picks, even when a previous sample ended in a failed step attempt
+fn mbt_initial_state_metadata_reset() {
+    let file_path: &Path = Path::new("fixtures/mbt_metadata.qnt");
+
+    let parsed = helpers::parse_from_path(file_path, "init", "step", Some("inv"), None).unwrap();
+    let config = SimulationConfig {
+        steps: 5,
+        samples: 20,
+        n_traces: 20,
+        seed: Some(0x42),
+        store_metadata: true,
+        verbosity: Verbosity::default(),
+    };
+    let result = parsed.simulate(config, progress::no_report());
+    assert!(result.is_ok());
+    let result = result.unwrap();
+    assert!(!result.best_traces.is_empty());
+
+    for (i, trace) in result.best_traces.iter().enumerate() {
+        let state0 = &trace
+            .states
+            .first()
+            .expect("every trace should have an initial state")
+            .value;
+        let record = state0.as_record_map();
+
+        let action_taken = record
+            .get("mbt::actionTaken")
+            .expect("initial state should have mbt::actionTaken");
+        assert_eq!(
+            action_taken.as_str().as_str(),
+            "init",
+            "trace {i}: initial state labeled {:?} instead of \"init\"",
+            action_taken.as_str()
+        );
+
+        let picks = record
+            .get("mbt::nondetPicks")
+            .expect("initial state should have mbt::nondetPicks")
+            .as_record_map();
+        for (name, pick) in picks.iter() {
+            let (label, _) = pick.as_variant();
+            assert_eq!(
+                label.as_str(),
+                "None",
+                "trace {i}: initial state has leaked nondet pick for {name}"
+            );
+        }
+    }
+}
+
+#[test]
 fn tictactoe_best_traces_quality_order() {
     let file_path: &Path = Path::new("fixtures/tictactoe.qnt");
 
@@ -247,4 +300,43 @@ fn tictactoe_best_traces_quality_order() {
             window[1]
         );
     }
+}
+
+/// Simulates `fixtures/stop_counter.qnt`, storing every run, and checks that
+/// the trace length statistics count each run once
+fn assert_trace_statistics_count_each_run_once(inv: &str) {
+    let file_path: &Path = Path::new("fixtures/stop_counter.qnt");
+
+    let parsed = helpers::parse_from_path(file_path, "init", "step", Some(inv), None).unwrap();
+    // Some runs cannot be extended after the first step, others reach the last step
+    let samples = 100;
+    let config = SimulationConfig {
+        steps: 2,
+        samples,
+        n_traces: samples,
+        seed: Some(0x42),
+        store_metadata: false,
+        verbosity: Verbosity::default(),
+    };
+    let result = parsed.simulate(config, progress::no_report()).unwrap();
+    assert_eq!(result.best_traces.len(), samples);
+
+    let lengths: Vec<usize> = result.best_traces.iter().map(|t| t.states.len()).collect();
+    assert!(lengths.contains(&2) && lengths.contains(&3));
+
+    let stats = result.trace_statistics;
+    let average = lengths.iter().sum::<usize>() as f64 / lengths.len() as f64;
+    assert_eq!(stats.average_trace_length, average);
+    assert_eq!(stats.min_trace_length, *lengths.iter().min().unwrap());
+    assert_eq!(stats.max_trace_length, *lengths.iter().max().unwrap());
+}
+
+#[test]
+fn trace_statistics_count_runs_that_cannot_be_extended_once() {
+    assert_trace_statistics_count_each_run_once("alwaysHolds");
+}
+
+#[test]
+fn trace_statistics_count_violating_runs_once() {
+    assert_trace_statistics_count_each_run_once("notStopped");
 }
