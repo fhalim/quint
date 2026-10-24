@@ -45,13 +45,16 @@ result () {
     # Run the command and record success / failure
     local quint_cmd="quint $cmd $args $file"
     local succeeded=false
-    if (eval "$quint_cmd &> /dev/null")
+    local output
+    if output=$(eval "$quint_cmd" 2>&1)
     then
         printf ":white_check_mark:"
         succeeded=true
     else
         printf ":x:"
         succeeded=false
+        # Show why the command failed in the job log, as the dashboard only records the result
+        printf '>>> %s failed:\n%s\n' "$quint_cmd" "$(echo "$output" | tail -n 30)" >&2
     fi
 
     # We only want to print additional info to annotate failing results

@@ -22,7 +22,7 @@
 use crate::evaluator::{CompiledExprWithArgs, CompiledExprWithLazyArgs};
 use crate::ir::QuintError;
 use crate::itf::DebugMessage;
-use crate::value::{ImmutableMap, ImmutableSet, ImmutableVec, Value, ValueInner};
+use crate::value::{ImmutableMap, ImmutableSet, ImmutableVec, Value, ValueRef};
 use fxhash::FxHashSet;
 use itertools::Itertools;
 use num_bigint::BigUint;
@@ -167,7 +167,7 @@ pub fn compile_lazy_op(op: &str) -> CompiledExprWithLazyArgs {
 
             // Special handling for large PowerSet (base >= 64 elements)
             if set.is_large_powerset() {
-                if let ValueInner::PowerSet(base_set) = set.0.as_ref() {
+                if let ValueRef::PowerSet(base_set) = set.view() {
                     // Large powerset: bounds are u32 digits, reassemble to BigUint
                     let n = base_set.cardinality()?;
                     let cardinality = BigUint::from(1u64) << n;
@@ -311,14 +311,14 @@ pub fn compile_eager_op(op: &str) -> CompiledExprWithArgs {
             // Check if any argument is an infinite set (Int or Nat)
             // These cannot be enumerated
             for arg in &args {
-                match arg.0.as_ref() {
-                    ValueInner::InfiniteInt => {
+                match arg.view() {
+                    ValueRef::InfiniteInt => {
                         return Err(QuintError::new(
                             "QNT501",
                             "Infinite set Int is non-enumerable",
                         ))
                     }
-                    ValueInner::InfiniteNat => {
+                    ValueRef::InfiniteNat => {
                         return Err(QuintError::new(
                             "QNT501",
                             "Infinite set Nat is non-enumerable",
