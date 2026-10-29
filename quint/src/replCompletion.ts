@@ -60,7 +60,7 @@ export function completeQuint(line: string, names: Iterable<string>): [string[],
 
   const candidates = new Set<string>()
   for (const name of [...names, ...quintKeywords]) {
-    if (name.startsWith(token) && name !== token) {
+    if (name.startsWith(token)) {
       candidates.add(name)
     }
   }

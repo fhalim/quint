@@ -55,4 +55,8 @@ describe('completeQuint', () => {
   it('deduplicates candidates', () => {
     expect(completeQuint('fo', ['foo', 'foo'])[0]).to.deep.equal(['foo'])
   })
+
+  it('includes exact-match name when other completions also match', () => {
+    expect(completeQuint('foo', ['foo', 'fooBar'])[0]).to.deep.equal(['foo', 'fooBar'])
+  })
 })
