@@ -42,6 +42,7 @@ Type ".exit" to exit, or ".help" for more information
 ```
 
 You can type `.help` and then press `<ENTER>` for supported REPL commands.
+The REPL also offers basic tab completion for names, keywords and REPL commands.
 
 ## 3. Preloading definitions
 
@@ -694,14 +695,7 @@ In the current version, the expressions are saved inside comments, e.g.:
 So if you do not want REPL to execute the previously typed expressions, you can
 just remove them from the file. As a note, the format may change in the future.
 
-## 7. Tab completion
-
-Press Tab to complete the identifier before the cursor. Completion covers
-definitions in the session and loaded files, user types and variant
-constructors, qualified names such as `N::foo`, built-ins, primitive types, and
-keywords. A line starting with `.` completes REPL commands, e.g. `.lo` to `.load`.
-
-## 8. Further reading
+## 7. Further reading
 
 We have not covered all REPL features in this tutorial. For example, you can
 execute concrete and randomized runs, as well as randomized tests. To see these
