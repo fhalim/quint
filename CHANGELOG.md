@@ -17,6 +17,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 ### Security
 
+## v0.33.1 -- 2026-10-28
+
+### Added
+### Changed
+
+- Upgraded the default Apalache version to 0.62.4.
+
+### Deprecated
+### Removed
+### Fixed
+
+- Rust backend output parsing accepts variable names that contain `constructor`, such as `constructorPanicked`, and still rejects the exact `constructor` key (#2041)
+- The REPL now resolves `import ... from` paths relative to the loaded file instead of the working directory, so `quint -r dir/spec.qnt` works when `spec.qnt` imports other files (#1449)
+- The REPL now discards definitions from inputs rejected by static analysis. Before, they stayed in the lookup table and made the REPL crash with `invalid IR reference: type constructor ... has no type definition` after an unknown type alias was used, or repeat a type application error on every later input
+- Fixed `quint run` recording a run twice when `step` cannot be extended. Such runs were written twice with `--n-traces` and `--out-itf`, the shortest traces were dropped when `--n-traces` equals `--max-samples`, and the trace length statistics counted them twice
+- Fixed the Rust evaluator counting runs that cannot be extended or that violate an invariant twice in the trace length statistics
+- Fixed the Rust evaluator failing to start on Linux systems with GLIBC older than 2.39, such as Ubuntu 20.04 and 22.04, with ``version `GLIBC_2.39' not found``. Quint now uses Rust evaluator v0.7.1, whose Linux binaries only require GLIBC 2.31 (#2051)
+- Fixed launching the Apalache server on Windows, which failed with `EINVAL` on Node.js 18.20.2, 20.12.2, 21.7.2 and newer (#2009)
+- Fixed launching the Apalache server on Windows when the Quint home directory (by default, the user's home directory) contains spaces
+- Quint now stops the Apalache server it started when it receives SIGTERM or SIGHUP. Before, the server kept running and held its port
+- Fixed `Cannot find module 'protobufjs/ext/descriptor'` when Quint is installed globally with pnpm (#2009)
+- The Emacs plugins (`quint-mode.el` and `lsp-quint.el`) now declare `lexical-binding`, so Emacs 31 no longer warns about a missing `lexical-binding` cookie when loading them (#2042)
+
+### Security
+
+- Updated `adm-zip` 0.5→0.6 to fix vulnerabilities in zip parsing and extraction, used when installing the Rust evaluator on Windows (#2050)
+
 ## v0.33.0 -- 2026-09-28
 
 ### Added
